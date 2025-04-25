@@ -1,6 +1,6 @@
 // lib/screens/simple_auth_screen.dart
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth, FirebaseAuthException, User;
 
 class SimpleAuthScreen extends StatefulWidget {
   const SimpleAuthScreen({Key? key}) : super(key: key);

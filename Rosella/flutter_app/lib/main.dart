@@ -1,13 +1,24 @@
 // lib/main.dart
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_app/screens/insights_screen.dart';
+import 'package:flutter_app/screens/mood_tracker_screen.dart';
 import 'package:flutter_app/screens/profile_screen.dart';
+// import 'package:flutter_app/screens/profile_screen.dart';
 import 'package:flutter_app/screens/user_auth_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/personalized_welcome_screen.dart';
 import 'screens/home_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -45,7 +56,9 @@ class MyApp extends StatelessWidget {
         '/auth': (context) => const AuthScreen(),
         '/personalized_welcome': (context) => const PersonalizedWelcomeScreen(),
         '/home': (context) => const HomeScreen(),
-        '/profile':(context)=> const ProfileScreen(),
+        '/mood': (context) => const MoodTrackerScreen(),
+        '/insights': (context) => const InsightsScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
       debugShowCheckedModeBanner: false,
     );
