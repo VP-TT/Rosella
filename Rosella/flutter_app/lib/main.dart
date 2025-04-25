@@ -1,9 +1,9 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/screens/profile_screen.dart';
-import 'package:flutter_app/screens/user_screen.dart';
+import 'package:flutter_app/screens/user_auth_screen.dart';
 import 'screens/welcome_screen.dart';
-import 'screens/user_form_screen.dart';
+import 'screens/auth_screen.dart';
 import 'screens/personalized_welcome_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -41,12 +41,11 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const WelcomeScreen(),
-        '/user_form': (context) => const UserFormScreen(),
+        '/': (context) => SplashPage(),
+        '/auth': (context) => const AuthScreen(),
         '/personalized_welcome': (context) => const PersonalizedWelcomeScreen(),
-        '/home':
-            (context) => const HomeScreen(), // You'll need to implement this
-        '/profile': (context) => ProfileScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/profile':(context)=> const ProfileScreen(),
       },
       debugShowCheckedModeBanner: false,
     );

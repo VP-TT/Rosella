@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1088210608352",
+    "project_id": "rosella-63332",
+    "storage_bucket": "rosella-63332.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1088210608352:android:c1b495abc1f0dad090f085",
+        "android_client_info": {
+          "package_name": "com.example.flutter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2orU3-tjokzEABYBUx6c9balt1TE2p-k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
