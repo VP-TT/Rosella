@@ -417,7 +417,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                                   ?.uid, // If using authentication
                         });
                   },
-                  activities: [],
+                  activities: _activities,
                 ),
           );
         },

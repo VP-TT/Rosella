@@ -5,12 +5,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/screens/calendar_screen.dart';
+import 'package:flutter_app/screens/exercises_screen.dart';
 import 'package:flutter_app/screens/insights_screen.dart';
 import 'package:flutter_app/screens/mood_tracker_screen.dart';
+import 'package:flutter_app/screens/nearby_hospitals_screen.dart';
 import 'package:flutter_app/screens/profile_screen.dart';
 // import 'package:flutter_app/screens/symptom_tracker.dart';
 import 'package:flutter_app/screens/symptom_home_screen.dart';
+import 'package:flutter_app/screens/exercises_screen.dart';
+
 import 'package:flutter_app/screens/symptoms_screen.dart';
+import 'package:flutter_app/screens/ultrasound_screen.dart';
 // import 'package:flutter_app/screens/profile_screen.dart';
 import 'package:flutter_app/screens/user_auth_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -65,6 +70,11 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         '/calendar': (context) => const CalendarScreen(),
         '/symptom': (context) => const HomeScreen1(),
+        '/exercises':(context)=> PCOSExerciseCompanion(),
+        '/nearby':(context)=> NearbyHospitalsScreen(),
+        '/ultrasound':(context)=> UltrasoundUploadScreen(),
+
+
       },
       debugShowCheckedModeBanner: false,
     );
