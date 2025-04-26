@@ -225,7 +225,7 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
               '${value.toStringAsFixed(1)}$unit',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFE75A7C),
+                color: Colors.white,
               ),
             ),
           ],

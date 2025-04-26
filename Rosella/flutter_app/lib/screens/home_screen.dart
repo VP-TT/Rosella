@@ -1,6 +1,9 @@
 // lib/screens/home_screen.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/screens/calendar_screen.dart';
+import 'package:flutter_app/screens/insights_screen.dart';
+import 'package:flutter_app/screens/mood_tracker_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/cycle_tracker_widget.dart';
 import '../widgets/calendar_widget.dart';
@@ -81,9 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       });
     }
-
-
-
 
     // Also load saved period data
     final String? lastPeriodString = prefs.getString('last_period_start');
@@ -236,9 +236,15 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Calendar'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.mood), label: 'Mood'),
-          BottomNavigationBarItem(icon: Icon(Icons.insights), label: 'Insights'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.insights),
+            label: 'Insights',
+          ),
         ],
         onTap: (index) {
           setState(() {
@@ -248,6 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (index == 0) {
             // Stay on home screen
           } else if (index == 1) {
+            Navigator.pushReplacementNamed(context, '/calendar');
             // Show calendar tab
           } else if (index == 2) {
             Navigator.pushReplacementNamed(context, '/mood');
@@ -256,8 +263,6 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
       ),
-
-
     );
   }
 
@@ -266,11 +271,11 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return _buildHomeContent();
       case 1:
-        return _buildCalendar();
+        return CalendarScreen();
       case 2:
-        return _buildHealthContent();
+        return MoodTrackerScreen();
       case 3:
-        return _buildInsightsContent();
+        return InsightsScreen();
       default:
         return _buildHomeContent();
     }
@@ -307,36 +312,43 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Mood Tracker',
                   Icons.mood,
                   const Color(0xFFFFD6E0),
+                  '/mood',
                 ),
                 _buildFeatureCard(
                   'Period Flow',
                   Icons.water_drop,
                   const Color(0xFFFFECB3),
+                  '/period_flow',
                 ),
                 _buildFeatureCard(
                   'Temperature',
                   Icons.thermostat,
                   const Color(0xFFD1F5FF),
+                  '/temperature',
                 ),
                 _buildFeatureCard(
                   'Symptoms',
                   Icons.medical_services,
                   const Color(0xFFE0F7FA),
+                  '/symptoms',
                 ),
                 _buildFeatureCard(
                   'Weight Log',
                   Icons.fitness_center,
                   const Color(0xFFE8F5E9),
+                  '/weight_log',
                 ),
                 _buildFeatureCard(
                   'Sleep Tracker',
                   Icons.nightlight,
                   const Color(0xFFE1BEE7),
+                  '/sleep_tracker',
                 ),
                 _buildFeatureCard(
                   'Notes',
                   Icons.note_alt,
                   const Color(0xFFFFCCBC),
+                  '/notes',
                 ),
               ],
             ),
@@ -523,114 +535,119 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCalendar() {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(16),
-            child: TableCalendar(
-              firstDay: DateTime.utc(2023, 1, 1),
-              lastDay: DateTime.utc(2026, 12, 31),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                  _loadDaySelections(selectedDay);
-                });
-              },
-              onPageChanged: (focusedDay) {
-                _focusedDay = focusedDay;
-              },
-              calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: const Color(0xFFE75A7C).withOpacity(0.5),
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: const BoxDecoration(
-                  color: Color(0xFFE75A7C),
-                  shape: BoxShape.circle,
-                ),
-                markerDecoration: const BoxDecoration(
-                  color: Color(0xFFE75A7C),
-                  shape: BoxShape.circle,
-                ),
-                markersMaxCount: 1,
-              ),
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
-                titleTextStyle: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFE75A7C),
-                ),
-                leftChevronIcon: Icon(Icons.chevron_left, color: Color(0xFFE75A7C)),
-                rightChevronIcon: Icon(Icons.chevron_right, color: Color(0xFFE75A7C)),
-              ),
-              calendarBuilders: CalendarBuilders(
-                defaultBuilder: (context, day, focusedDay) {
-                  // Check if this day is in period
-                  if (_isPeriodDay(day)) {
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE75A7C),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '${day.day}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    );
-                  }
-                  // Check if this day is ovulation
-                  else if (_isOvulationDay(day)) {
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFD6E0),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '${day.day}',
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    );
-                  }
-                  return null;
-                },
-              ),
-            ),
-          ),
+  // Widget _buildCalendar() {
+  //   return SingleChildScrollView(
+  //     child: Column(
+  //       children: [
+  //         Container(
+  //           decoration: BoxDecoration(
+  //             color: Colors.white,
+  //             borderRadius: BorderRadius.circular(15),
+  //             boxShadow: [
+  //               BoxShadow(
+  //                 color: Colors.grey.withOpacity(0.1),
+  //                 spreadRadius: 1,
+  //                 blurRadius: 5,
+  //                 offset: const Offset(0, 2),
+  //               ),
+  //             ],
+  //           ),
+  //           padding: const EdgeInsets.all(16),
+  //           child: TableCalendar(
+  //             firstDay: DateTime.utc(2023, 1, 1),
+  //             lastDay: DateTime.utc(2026, 12, 31),
+  //             focusedDay: _focusedDay,
+  //             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+  //             onDaySelected: (selectedDay, focusedDay) {
+  //               setState(() {
+  //                 _selectedDay = selectedDay;
+  //                 _focusedDay = focusedDay;
+  //                 _loadDaySelections(selectedDay);
+  //               });
+  //             },
+  //             onPageChanged: (focusedDay) {
+  //               _focusedDay = focusedDay;
+  //             },
+  //             calendarStyle: CalendarStyle(
+  //               todayDecoration: BoxDecoration(
+  //                 color: const Color(0xFFE75A7C).withOpacity(0.5),
+  //                 shape: BoxShape.circle,
+  //               ),
+  //               selectedDecoration: const BoxDecoration(
+  //                 color: Color(0xFFE75A7C),
+  //                 shape: BoxShape.circle,
+  //               ),
+  //               markerDecoration: const BoxDecoration(
+  //                 color: Color(0xFFE75A7C),
+  //                 shape: BoxShape.circle,
+  //               ),
+  //               markersMaxCount: 1,
+  //             ),
+  //             headerStyle: const HeaderStyle(
+  //               formatButtonVisible: false,
+  //               titleCentered: true,
+  //               titleTextStyle: TextStyle(
+  //                 fontSize: 18,
+  //                 fontWeight: FontWeight.bold,
+  //                 color: Color(0xFFE75A7C),
+  //               ),
+  //               leftChevronIcon: Icon(
+  //                 Icons.chevron_left,
+  //                 color: Color(0xFFE75A7C),
+  //               ),
+  //               rightChevronIcon: Icon(
+  //                 Icons.chevron_right,
+  //                 color: Color(0xFFE75A7C),
+  //               ),
+  //             ),
+  //             calendarBuilders: CalendarBuilders(
+  //               defaultBuilder: (context, day, focusedDay) {
+  //                 // Check if this day is in period
+  //                 if (_isPeriodDay(day)) {
+  //                   return Container(
+  //                     margin: const EdgeInsets.all(4),
+  //                     alignment: Alignment.center,
+  //                     decoration: const BoxDecoration(
+  //                       color: Color(0xFFE75A7C),
+  //                       shape: BoxShape.circle,
+  //                     ),
+  //                     child: Text(
+  //                       '${day.day}',
+  //                       style: const TextStyle(color: Colors.white),
+  //                     ),
+  //                   );
+  //                 }
+  //                 // Check if this day is ovulation
+  //                 else if (_isOvulationDay(day)) {
+  //                   return Container(
+  //                     margin: const EdgeInsets.all(4),
+  //                     alignment: Alignment.center,
+  //                     decoration: const BoxDecoration(
+  //                       color: Color(0xFFFFD6E0),
+  //                       shape: BoxShape.circle,
+  //                     ),
+  //                     child: Text(
+  //                       '${day.day}',
+  //                       style: const TextStyle(color: Colors.black),
+  //                     ),
+  //                   );
+  //                 }
+  //                 return null;
+  //               },
+  //             ),
+  //           ),
+  //         ),
 
-          // Add this section to display the symptom tracker when a day is selected
-          if (_selectedDay != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 20.0),
-              child: _buildSymptomTracker(),
-            ),
-        ],
-      ),
-    );
-  }
-
+  //         // Add this section to display the symptom tracker when a day is selected
+  //         if (_selectedDay != null)
+  //           Padding(
+  //             padding: const EdgeInsets.only(top: 20.0),
+  //             child: _buildSymptomTracker(),
+  //           ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildSymptomTracker() {
     return Container(
@@ -706,34 +723,43 @@ class _HomeScreenState extends State<HomeScreen> {
               'Save Symptoms',
               style: TextStyle(color: Colors.white),
             ),
-
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureCard(String title, IconData icon, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 40, color: Colors.black87),
-          const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
+  Widget _buildFeatureCard(
+    String title,
+    IconData icon,
+    Color color,
+    String route,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, route);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 40, color: Colors.black87),
+            const SizedBox(height: 8),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }

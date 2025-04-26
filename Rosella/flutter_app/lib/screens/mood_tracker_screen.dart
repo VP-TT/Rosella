@@ -1,4 +1,6 @@
 // lib/screens/mood_tracker_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -15,7 +17,6 @@ class MoodTrackerScreen extends StatefulWidget {
 
 class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     with SingleTickerProviderStateMixin {
-  int _streak = 0;
   List<Map<String, dynamic>> _moodEntries = [];
   List<String> _activities = [
     'Work',
@@ -38,7 +39,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     final prefs = await SharedPreferences.getInstance();
     final String? entriesJson = prefs.getString('mood_entries');
     final String? activitiesJson = prefs.getString('mood_activities');
-    final int streak = prefs.getInt('mood_streak') ?? 0;
 
     if (entriesJson != null) {
       final List<dynamic> decoded = jsonDecode(entriesJson);
@@ -76,23 +76,32 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
         );
       });
     }
-
-    setState(() {
-      _streak = streak;
-    });
   }
 
   Future<void> _saveMoodData() async {
+    // Keep SharedPreferences for local caching
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('mood_entries', jsonEncode(_moodEntries));
     await prefs.setString('mood_activities', jsonEncode(_selectedActivities));
-    await prefs.setInt('mood_streak', _streak);
-  }
 
-  void _addMood(String mood) {
-    setState(() {
-      _currentMood = mood;
-    });
+    // Add Firebase storage
+    for (var entry in _moodEntries) {
+      // Convert DateTime to Timestamp for Firestore
+      final date =
+          entry['date'] is DateTime
+              ? entry['date'] as DateTime
+              : DateTime.parse(entry['date'].toString());
+
+      final dateKey = DateFormat('yyyy-MM-dd').format(date);
+      final activities = _selectedActivities[dateKey] ?? [];
+
+      // Store in Firestore
+      await FirebaseFirestore.instance.collection('mood').doc(dateKey).set({
+        'date': date,
+        'mood': entry['mood'],
+        'activities': activities,
+      });
+    }
   }
 
   void _toggleActivity(String activity) {
@@ -120,15 +129,15 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   Widget _getMoodEmoji(String mood) {
     switch (mood.toLowerCase()) {
       case 'amazing':
-        return const Text('😂', style: TextStyle(fontSize: 40));
+        return const Text('😂', style: TextStyle(fontSize: 20));
       case 'good':
-        return const Text('🙂', style: TextStyle(fontSize: 40));
+        return const Text('🙂', style: TextStyle(fontSize: 20));
       case 'anxious':
-        return const Text('😰', style: TextStyle(fontSize: 40));
+        return const Text('😰', style: TextStyle(fontSize: 20));
       case 'angry':
-        return const Text('😠', style: TextStyle(fontSize: 40));
+        return const Text('😠', style: TextStyle(fontSize: 20));
       default:
-        return const Text('😐', style: TextStyle(fontSize: 40));
+        return const Text('😐', style: TextStyle(fontSize: 20));
     }
   }
 
@@ -149,69 +158,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search bar
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Search Entries',
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Streak
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE0F7FA),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.local_fire_department,
-                          color: Color(0xFF26A69A),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$_streak Day Streak',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.calendar_month,
-                      color: Color(0xFFE75A7C),
-                    ),
-                    label: const Text(
-                      'View Calendar',
-                      style: TextStyle(color: Color(0xFFE75A7C)),
-                    ),
-                  ),
-                ],
-              ),
-
               const SizedBox(height: 24),
 
               // Week view
@@ -228,6 +174,25 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                       Duration(days: 6 - index),
                     );
                     final isToday = index == 6;
+                    final dateKey = DateFormat('yyyy-MM-dd').format(date);
+
+                    // Find mood for this date
+                    String mood = 'neutral';
+                    for (var entry in _moodEntries) {
+                      final entryDate =
+                          entry['date'] is DateTime
+                              ? entry['date'] as DateTime
+                              : DateTime.parse(entry['date'].toString());
+                      final entryDateKey = DateFormat(
+                        'yyyy-MM-dd',
+                      ).format(entryDate);
+
+                      if (entryDateKey == dateKey) {
+                        mood = entry['mood'] as String;
+                        break;
+                      }
+                    }
+
                     return Column(
                       children: [
                         Text(
@@ -261,7 +226,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text('😊', style: TextStyle(fontSize: 20)),
+                        _getMoodEmoji(mood),
                       ],
                     );
                   }),
@@ -388,16 +353,22 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Calendar'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.mood), label: 'Mood'),
-          BottomNavigationBarItem(icon: Icon(Icons.insights), label: 'Insights'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.insights),
+            label: 'Insights',
+          ),
         ],
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacementNamed(context, '/home');
           } else if (index == 1) {
             // Handle Calendar tab - either navigate or stay on home with calendar tab
-            Navigator.pushReplacementNamed(context, '/home');
+            Navigator.pushReplacementNamed(context, '/calendar');
             // You might need to pass a parameter to show the calendar tab
           } else if (index == 2 && !(this is MoodTrackerScreen)) {
             Navigator.pushReplacementNamed(context, '/mood');
@@ -420,34 +391,33 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
             builder:
                 (context) => AddMoodBottomSheet(
                   onMoodAdded: (mood, activities) {
+                    final now = DateTime.now();
+                    final dateKey = DateFormat('yyyy-MM-dd').format(now);
+
                     setState(() {
-                      _moodEntries.insert(0, {
-                        'date': DateTime.now(),
-                        'mood': mood,
-                      });
-
-                      final dateKey = DateFormat(
-                        'yyyy-MM-dd',
-                      ).format(DateTime.now());
+                      _moodEntries.insert(0, {'date': now, 'mood': mood});
                       _selectedActivities[dateKey] = activities;
-
-                      // Update streak
-                      final yesterday = DateTime.now().subtract(
-                        const Duration(days: 1),
-                      );
-                      final yesterdayKey = DateFormat(
-                        'yyyy-MM-dd',
-                      ).format(yesterday);
-
-                      if (_selectedActivities.containsKey(yesterdayKey)) {
-                        _streak++;
-                      } else {
-                        _streak = 1;
-                      }
                     });
+
+                    // Save to SharedPreferences
                     _saveMoodData();
+
+                    // Save directly to Firestore
+                    FirebaseFirestore.instance
+                        .collection('mood')
+                        .doc(dateKey)
+                        .set({
+                          'date': now,
+                          'mood': mood,
+                          'activities': activities,
+                          'userId':
+                              FirebaseAuth
+                                  .instance
+                                  .currentUser
+                                  ?.uid, // If using authentication
+                        });
                   },
-                  activities: _activities,
+                  activities: [],
                 ),
           );
         },
@@ -539,7 +509,10 @@ class _AddMoodBottomSheetState extends State<AddMoodBottomSheet> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: const Text('Save', style: TextStyle(fontSize: 16)),
+              child: const Text(
+                'Save',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
             ),
           ),
         ],

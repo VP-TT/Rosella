@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
-
-import 'mood_tracker_screen.dart';
-
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({Key? key}) : super(key: key);
@@ -17,9 +13,16 @@ class InsightsScreen extends StatefulWidget {
 
 class _InsightsScreenState extends State<InsightsScreen> {
   String _selectedTimeframe = 'Week';
-  Map<String, List<String>> _moodActivities = {};
-  Map<String, int> _activityCounts = {};
-  List<double> _weeklyMoodScores = [4, 3.5, 4.5, 3, 2.5, 4, 5];
+  List<Map<String, dynamic>> _moodEntries = [];
+
+  // Mood scores for calculation
+  final Map<String, double> _moodScores = {
+    'Amazing': 5.0,
+    'Good': 4.0,
+    'Neutral': 3.0,
+    'Anxious': 2.0,
+    'Angry': 1.0,
+  };
 
   @override
   void initState() {
@@ -29,49 +32,128 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   Future<void> _loadMoodData() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? activitiesJson = prefs.getString('mood_activities');
+    final String? entriesJson = prefs.getString('mood_entries');
 
-    if (activitiesJson != null) {
-      final Map<String, dynamic> decoded = jsonDecode(activitiesJson);
+    if (entriesJson != null) {
+      final List<dynamic> decoded = jsonDecode(entriesJson);
       setState(() {
-        _moodActivities = Map<String, List<String>>.from(
-          decoded.map((key, value) => MapEntry(key, List<String>.from(value))),
+        _moodEntries = List<Map<String, dynamic>>.from(
+          decoded.map((item) => Map<String, dynamic>.from(item)),
         );
       });
-
-      _calculateActivityCounts();
+    } else {
+      // Include the same sample data that's in the MoodTrackerScreen
+      setState(() {
+        _moodEntries = [
+          {'date': DateTime.now(), 'mood': 'Good'},
+          {
+            'date': DateTime.now().subtract(const Duration(days: 1)),
+            'mood': 'Amazing',
+          },
+          {
+            'date': DateTime.now().subtract(const Duration(days: 2)),
+            'mood': 'Anxious',
+          },
+          {
+            'date': DateTime.now().subtract(const Duration(days: 3)),
+            'mood': 'Angry',
+          },
+        ];
+      });
     }
   }
 
-  void _calculateActivityCounts() {
-    Map<String, int> counts = {};
-
-    _moodActivities.forEach((date, activities) {
-      for (var activity in activities) {
-        if (counts.containsKey(activity)) {
-          counts[activity] = counts[activity]! + 1;
-        } else {
-          counts[activity] = 1;
-        }
-      }
-    });
-
-    // Sort by count
-    var sortedEntries =
-        counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-
-    Map<String, int> sortedCounts = {};
-    for (var entry in sortedEntries) {
-      sortedCounts[entry.key] = entry.value;
+  String _getDateRangeText() {
+    final now = DateTime.now();
+    if (_selectedTimeframe == 'Week') {
+      final start = now.subtract(Duration(days: now.weekday - 1));
+      final end = start.add(const Duration(days: 6));
+      return '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d, yyyy').format(end)}';
+    } else if (_selectedTimeframe == 'Month') {
+      return DateFormat('MMMM yyyy').format(now);
+    } else {
+      return DateFormat('yyyy').format(now);
     }
+  }
 
-    setState(() {
-      _activityCounts = sortedCounts;
-    });
+  List<double> _calculateMoodScores() {
+    final now = DateTime.now();
+    List<double> scores = [];
+
+    if (_selectedTimeframe == 'Week') {
+      // 7 days, Mon-Sun
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      for (int i = 0; i < 7; i++) {
+        final day = startOfWeek.add(Duration(days: i));
+        final dayKey = DateFormat('yyyy-MM-dd').format(day);
+
+        double sum = 0;
+        int count = 0;
+        for (var entry in _moodEntries) {
+          final entryDate =
+              entry['date'] is DateTime
+                  ? entry['date'] as DateTime
+                  : DateTime.parse(entry['date'].toString());
+          if (DateFormat('yyyy-MM-dd').format(entryDate) == dayKey) {
+            final mood = entry['mood'] as String;
+            sum += _moodScores[mood] ?? 3.0;
+            count++;
+          }
+        }
+        scores.add(count > 0 ? sum / count : 0);
+      }
+    } else if (_selectedTimeframe == 'Month') {
+      // 4 weeks in the month
+      final currentMonth = now.month;
+      final currentYear = now.year;
+      for (int week = 0; week < 4; week++) {
+        double sum = 0;
+        int count = 0;
+        for (var entry in _moodEntries) {
+          final entryDate =
+              entry['date'] is DateTime
+                  ? entry['date'] as DateTime
+                  : DateTime.parse(entry['date'].toString());
+          if (entryDate.month == currentMonth &&
+              entryDate.year == currentYear) {
+            final weekOfMonth = (entryDate.day - 1) ~/ 7;
+            if (weekOfMonth == week) {
+              final mood = entry['mood'] as String;
+              sum += _moodScores[mood] ?? 3.0;
+              count++;
+            }
+          }
+        }
+        scores.add(count > 0 ? sum / count : 0);
+      }
+    } else {
+      // Year: 12 months
+      final year = now.year;
+      for (int month = 1; month <= 12; month++) {
+        double sum = 0;
+        int count = 0;
+        for (var entry in _moodEntries) {
+          final entryDate =
+              entry['date'] is DateTime
+                  ? entry['date'] as DateTime
+                  : DateTime.parse(entry['date'].toString());
+          if (entryDate.year == year && entryDate.month == month) {
+            final mood = entry['mood'] as String;
+            sum += _moodScores[mood] ?? 3.0;
+            count++;
+          }
+        }
+        scores.add(count > 0 ? sum / count : 0);
+      }
+    }
+    return scores;
   }
 
   @override
   Widget build(BuildContext context) {
+    final moodScores = _calculateMoodScores();
+    final List<String> labels = _getLabels();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFCECF1),
       appBar: AppBar(
@@ -131,26 +213,24 @@ class _InsightsScreenState extends State<InsightsScreen> {
               ),
 
               const SizedBox(height: 16),
-
-              // Date range
               Center(
                 child: Text(
-                  'May 1, 2025 - May 7, 2025',
+                  _getDateRangeText(),
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ),
-
               const SizedBox(height: 24),
 
-              // Weekly Average
-              const Text(
-                'Weekly Average',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                '${_selectedTimeframe}ly Average',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-
               const SizedBox(height: 16),
 
-              // Chart
+              // Custom Chart
               Container(
                 height: 250,
                 padding: const EdgeInsets.all(16),
@@ -161,207 +241,151 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 child: Column(
                   children: [
                     Expanded(
-                      child: BarChart(
-                        BarChartData(
-                          alignment: BarChartAlignment.spaceAround,
-                          maxY: 5,
-                          barTouchData: BarTouchData(enabled: false),
-                          titlesData: FlTitlesData(
-                            show: true,
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, meta) {
-                                  const days = [
-                                    'Sun',
-                                    'Mon',
-                                    'Tue',
-                                    'Wed',
-                                    'Thu',
-                                    'Fri',
-                                    'Sat',
-                                  ];
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      days[value.toInt()],
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  );
-                                },
-                                reservedSize: 30,
-                              ),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            topTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          barGroups: List.generate(7, (index) {
-                            return BarChartGroupData(
-                              x: index,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: _weeklyMoodScores[index],
-                                  color: const Color(0xFFE75A7C),
-                                  width: 20,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(4),
-                                    topRight: Radius.circular(4),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }),
-                        ),
-                      ),
+                      child: CustomBarChart(scores: moodScores, labels: labels),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: List.generate(5, (index) {
-                        return Column(
-                          children: [
-                            Text('😊', style: TextStyle(fontSize: 20)),
+                      children: [
+                        Column(
+                          children: const [
+                            Text('😠', style: TextStyle(fontSize: 20)),
                           ],
-                        );
-                      }),
+                        ),
+                        Column(
+                          children: const [
+                            Text('😰', style: TextStyle(fontSize: 20)),
+                          ],
+                        ),
+                        Column(
+                          children: const [
+                            Text('😐', style: TextStyle(fontSize: 20)),
+                          ],
+                        ),
+                        Column(
+                          children: const [
+                            Text('🙂', style: TextStyle(fontSize: 20)),
+                          ],
+                        ),
+                        Column(
+                          children: const [
+                            Text('😂', style: TextStyle(fontSize: 20)),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Top Weekly Activities
-              const Text(
-                'Top Weekly Activities',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Activity bars
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children:
-                      _activityCounts.entries.take(6).map((entry) {
-                        final activity = entry.key;
-                        final count = entry.value;
-                        final percentage =
-                            (count / _moodActivities.length * 100).round();
-
-                        Color barColor;
-                        switch (activity.toLowerCase()) {
-                          case 'family':
-                            barColor = Colors.green.shade200;
-                            break;
-                          case 'work':
-                            barColor = Colors.blue.shade200;
-                            break;
-                          case 'sleep':
-                            barColor = Colors.purple.shade200;
-                            break;
-                          case 'exercise':
-                            barColor = Colors.orange.shade200;
-                            break;
-                          case 'yoga':
-                            barColor = Colors.pink.shade200;
-                            break;
-                          case 'sports':
-                            barColor = Colors.teal.shade200;
-                            break;
-                          default:
-                            barColor = Colors.grey.shade200;
-                        }
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              SizedBox(width: 80, child: Text(activity)),
-                              Expanded(
-                                child: Container(
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width:
-                                            (MediaQuery.of(context).size.width -
-                                                150) *
-                                            percentage /
-                                            100,
-                                        height: 20,
-                                        decoration: BoxDecoration(
-                                          color: barColor,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 40,
-                                child: Text(
-                                  '$percentage%',
-                                  textAlign: TextAlign.right,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
                 ),
               ),
             ],
           ),
         ),
       ),
-      // In your MoodTrackerScreen and InsightsScreen
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: 2, // Set to 2 for MoodScreen or 3 for InsightsScreen
+        currentIndex: 3, // Set to 3 for InsightsScreen
         selectedItemColor: const Color(0xFFE75A7C),
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Calendar'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.mood), label: 'Mood'),
-          BottomNavigationBarItem(icon: Icon(Icons.insights), label: 'Insights'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.insights),
+            label: 'Insights',
+          ),
         ],
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacementNamed(context, '/home');
           } else if (index == 1) {
-            // Handle Calendar tab - either navigate or stay on home with calendar tab
-            Navigator.pushReplacementNamed(context, '/home');
-            // You might need to pass a parameter to show the calendar tab
-          } else if (index == 2 && !(this is MoodTrackerScreen)) {
+            Navigator.pushReplacementNamed(context, '/calendar');
+          } else if (index == 2) {
             Navigator.pushReplacementNamed(context, '/mood');
-          } else if (index == 3 && !(this is InsightsScreen)) {
-            Navigator.pushReplacementNamed(context, '/insights');
+          } else if (index == 3) {
+            // Already on InsightsScreen
           }
         },
       ),
+    );
+  }
 
+  List<String> _getLabels() {
+    if (_selectedTimeframe == 'Week') {
+      return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    } else if (_selectedTimeframe == 'Month') {
+      return ['W1', 'W2', 'W3', 'W4'];
+    } else {
+      return ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+    }
+  }
+}
+
+class CustomBarChart extends StatelessWidget {
+  final List<double> scores;
+  final List<String> labels;
+
+  const CustomBarChart({Key? key, required this.scores, required this.labels})
+    : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxHeight = constraints.maxHeight - 30; // Space for labels
+        final double barWidth =
+            (constraints.maxWidth - 20) / scores.length - 10;
+
+        return Column(
+          children: [
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(scores.length, (index) {
+                  // Normalize height (5.0 is max score)
+                  final double normalizedHeight =
+                      scores[index] / 5.0 * maxHeight;
+
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        width: barWidth,
+                        height: normalizedHeight,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE75A7C),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            topRight: Radius.circular(4),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(labels.length, (index) {
+                return SizedBox(
+                  width: barWidth,
+                  child: Text(
+                    labels[index],
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                );
+              }),
+            ),
+          ],
+        );
+      },
     );
   }
 }

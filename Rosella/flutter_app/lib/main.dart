@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_app/screens/calendar_screen.dart';
 import 'package:flutter_app/screens/insights_screen.dart';
 import 'package:flutter_app/screens/mood_tracker_screen.dart';
 import 'package:flutter_app/screens/profile_screen.dart';
+import 'package:flutter_app/screens/symptoms_screen.dart';
 // import 'package:flutter_app/screens/profile_screen.dart';
 import 'package:flutter_app/screens/user_auth_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -59,6 +61,8 @@ class MyApp extends StatelessWidget {
         '/mood': (context) => const MoodTrackerScreen(),
         '/insights': (context) => const InsightsScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/calendar': (context) => const CalendarScreen(),
+        '/symptom': (context) => const SymptomsScreen(),
       },
       debugShowCheckedModeBanner: false,
     );
