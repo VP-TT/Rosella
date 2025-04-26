@@ -312,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Mood Tracker',
                   Icons.mood,
                   const Color(0xFFFFD6E0),
-                  '/mood',
+                  '/symptom',
                 ),
                 _buildFeatureCard(
                   'Period Flow',
