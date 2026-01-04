@@ -2,6 +2,10 @@
 
 A comprehensive mobile health application built with Flutter and Firebase that leverages Machine Learning and Deep Learning to predict and detect Polycystic Ovary Syndrome (PCOS) in women.
 
+## Demo
+
+https://github.com/user-attachments/assets/1e3dd312-aeaa-43bf-9844-350f191de810
+
 ## About The Project
 
 Rosella is an intelligent healthcare application designed to assist in early detection and management of PCOS through dual prediction mechanisms. The app combines symptom-based ML prediction with ultrasound image analysis using deep learning, providing a comprehensive diagnostic support tool.
@@ -16,13 +20,6 @@ Rosella is an intelligent healthcare application designed to assist in early det
 - **Health Tracking** - Monitor symptoms and health metrics over time
 - **User-Friendly Interface** - Intuitive design for seamless user experience
 - **Personalized Results** - Detailed prediction reports and recommendations
-
-
-## Demo
-
-https://github.com/user-attachments/assets/1e3dd312-aeaa-43bf-9844-350f191de810
-
-
 
 ## Built With
 
