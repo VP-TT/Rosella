@@ -54,8 +54,8 @@ Before running this project, ensure you have:
 
 **1. Clone the repository**
 
-    git clone https://github.com/yourusername/rosella-pcos-app.git
-    cd rosella-pcos-app
+    git clone https://github.com/yourusername/rosella.git
+    cd rosella
 
 **2. Install dependencies**
 
