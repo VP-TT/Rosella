@@ -54,7 +54,7 @@ Before running this project, ensure you have:
 
 **1. Clone the repository**
 
-    git clone https://github.com/yourusername/rosella.git
+    git clone https://github.com/VP-TT/rosella.git
     cd rosella
 
 **2. Install dependencies**
